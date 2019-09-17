@@ -41,7 +41,7 @@ if (media_type == "image"):
         bot.send_photo(
             chat_id,
             image,
-            caption = "<b>"+title+"</b>\n <a href='"+today_link+"'>Check the explanation</a>.",
+            caption = "<b>"+title+"</b>\n <a href='"+today_link+"'>Check the explanation.</a>",
             parse_mode='html')
     # Image sended.
     print("Image sended !")
