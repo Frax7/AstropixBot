@@ -44,7 +44,6 @@ if (media_type == "image"):
             caption = "<b>"+title+"</b>\n <a href='"+today_link+"'>Check the explanation.</a>",
             parse_mode='html')
     # Image sended.
-    print("Image sended !")
     
 
 elif (media_type == "video"):
@@ -67,5 +66,4 @@ elif (media_type == "video"):
             caption = "[VIDEO] <b>"+title+"</b>\n <a href='"+url+"'>Watch full video.</a>\n <a href='"+today_link+"'>Check the explanation.</a>",
             parse_mode='html')
     # Thumbnail sended.
-    print("Thumbnail sended !")
 
