@@ -9,9 +9,9 @@ If you want to see this bot in action, you are wellcome to join to the [chanel](
 
 ## Dependencies
 
-You have to install the python telegram bot library using the following command:
+To install all dependencies, which are only the python-telegram-bot library, you can use the following command:
 
-```pip3 install python-telegram-bot```
+```pip3 install -r requirements.txt```
 
 ## Credentials
 
