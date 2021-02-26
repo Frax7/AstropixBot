@@ -9,15 +9,17 @@ If you want to see this bot in action, you are wellcome to join to the [chanel](
 
 ## Dependencies
 
-You have to install the python telegram bot library using the following command:
+You have to install all dependencies by using the following command:
 
-```pip3 install python-telegram-bot```
+```pip install -r requirements.txt```
 
 ## Credentials
 
 Obviously you must need a `telegram bot token` which you can get from the BotFather, and also a `chat_id` where the bot will send the information.
 
 The last thing you will need is an `api key`. You can get one easly from this [page](https://api.nasa.gov/index.html#apply-for-an-api-key).
+
+Once you have you credentials, write them in the `my_secrets`file as it says, and rename it to `secrets`.
 
 ## Acknowledgments
 
