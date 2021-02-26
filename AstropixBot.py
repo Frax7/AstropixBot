@@ -1,17 +1,22 @@
 
+import os
 import json
 import telegram
 from datetime import date
 from urllib.request import urlopen
 from youtubeID import get_yt_video_id
 
+# Read secrets
+with open("secrets",'r') as secrets:
+    lines = secrets.readlines()
+    token = lines[0][:-1]
+    chat_id = lines[1][:-1]
+    api_key = lines[2]
+
 # Create the Bot object
-token = "TOKEN"
-chat_id = "CHAT_ID"
 bot = telegram.Bot(token)
 
 # Pick today's page and today's link for JSON.
-api_key = "API_KEY"
 today = date.today()
 today_link = 'http://apod.nasa.gov/apod/ap'+today.strftime("%y%m%d")+'.html'
 link = "https://api.nasa.gov/planetary/apod?api_key="+api_key+"&date="+today.strftime("%Y-%m-%d")
@@ -41,10 +46,13 @@ if (media_type == "image"):
         bot.send_photo(
             chat_id,
             image,
-            caption = "<b>"+title+"</b>\n <a href='"+today_link+"'>Check the explanation.</a>",
+            caption = "<b>"+title+"</b> \n <a href='"+today_link+"'>Check the explanation.</a>",
             parse_mode='html')
-    # Image sended.
-    
+    # Image sent.
+    if os.path.exists('image.jpeg'):
+        os.remove('image.jpeg')
+    else:
+        print("Error :: the file \'image.jpeg\' does not exist")
 
 elif (media_type == "video"):
     # In case of video, will download the thumbnail and then send
@@ -65,5 +73,5 @@ elif (media_type == "video"):
             image,
             caption = "[VIDEO] <b>"+title+"</b>\n <a href='"+url+"'>Watch full video.</a>\n <a href='"+today_link+"'>Check the explanation.</a>",
             parse_mode='html')
-    # Thumbnail sended.
+    # Thumbnail sent.
 
