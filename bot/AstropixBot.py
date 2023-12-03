@@ -1,88 +1,69 @@
+import datetime
+import logging
+import mimetypes
 
-import os
-import schedule
-import time
-import json
-import telegram
-from datetime import date
-from urllib.request import urlopen
+import Constants
+import requests
+from telegram import Update
+from telegram.ext import (ApplicationBuilder, ContextTypes, MessageHandler,
+                          filters)
 from youtubeID import get_yt_video_id
 
-def astropixbot():
-    # Read secrets
-    with open("secrets",'r') as secrets:
-        lines = secrets.readlines()
-        token = lines[0][:-1]
-        chat_id = lines[1][:-1]
-        api_key = lines[2]
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
-    # Create the Bot object
-    bot = telegram.Bot(token)
+def get_todays_info() -> (dict, str):
+    todays_date = datetime.datetime.today().strftime("%Y-%m-%d")
+    response = requests.get(f"https://api.nasa.gov/planetary/apod?api_key={Constants.NASA_API_TOKEN}&date={todays_date}")
+    todays_link = f'http://apod.nasa.gov/apod/ap{datetime.datetime.today().strftime("%y%m%d")}.html'
+    return response.json(), todays_link
 
-    # Pick today's page and today's link for JSON.
-    today = date.today()
-    today_link = 'http://apod.nasa.gov/apod/ap'+today.strftime("%y%m%d")+'.html'
-    link = "https://api.nasa.gov/planetary/apod?api_key="+api_key+"&date="+today.strftime("%Y-%m-%d")
+async def disclaimer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    if chat_id != Constants.PERSONAL_CHAT_ID:
+        await context.bot.send_message(chat_id=chat_id, text="This bot works only on @AstropixChannel\nFollow the channel so you don't miss any pic! 🤩")
+    else:
+        response = get_todays_info()
+        await context.bot.send_message(chat_id=chat_id, text=update)
+        await context.bot.send_message(chat_id=chat_id, text=response)
+        await send_apod(context=context)
 
-    with urlopen(link) as response:
-        # .decode("utf-8") is for converting bytes into string.
-        source = response.read().decode("utf-8")
-        data = json.loads(source)
+async def send_todays_image(image_url: str, caption: str, context: ContextTypes.DEFAULT_TYPE):
+    mimetype, _ = mimetypes.guess_type(image_url)
+    caption = f"📸 {caption}"
+    if mimetype == 'image/gif':
+        await context.bot.send_document(chat_id=Constants.CHANNEL_CHAT_ID, document=image_url, caption=caption, parse_mode="html")
+    else:
+        await context.bot.send_photo(chat_id=Constants.CHANNEL_CHAT_ID, photo=image_url, caption=caption, parse_mode="html")
 
-    # Picking all relevant information from the JSON.
-    media_type = data["media_type"]
-    url = data["url"]
-    title = data["title"]
+async def send_todays_video(video_url: str, caption: str, context: ContextTypes.DEFAULT_TYPE):
+    yt_video_id = get_yt_video_id(video_url)
+    image_url = f"https://img.youtube.com/vi/{yt_video_id}/hqdefault.jpg"
+    caption = f"<b>🎬 <a href='{video_url}'>[VIDEO]</a></b> {caption}"
+    await context.bot.send_photo(chat_id=Constants.CHANNEL_CHAT_ID, photo=image_url, caption=caption, parse_mode='html')
 
-    # Diferenciate between image and video content
-    if (media_type == "image"):
-        # In case of image, will download the image and then send
-        # it with a caption(title + today's link).
-        
-        # Start downloading the image.
-        with open("image.jpeg",'wb') as imagefile:
-            imagefile.write(urlopen(url).read())
-        # Image downloaded.
+async def send_apod(context: ContextTypes.DEFAULT_TYPE):
+    response, todays_link = get_todays_info()
+    media_type = response['media_type']
+    caption = f"<b>{response['title']}</b>\n<a href='{todays_link}'>Check the explanation</a>"
+    match media_type:
+        case "image":
+            await send_todays_image(image_url=response['hdurl'], caption=caption, context=context)
+        case "video":
+            await send_todays_video(video_url=response['url'], caption=caption, context=context)
 
-        # Open and send the image with its caption.
-        with open('image.jpeg', 'rb') as image:
-            bot.send_photo(
-                chat_id,
-                image,
-                caption = "<b>"+title+"</b> \n <a href='"+today_link+"'>Check the explanation.</a>",
-                parse_mode='html')
-        # Image sent.
-        if os.path.exists('image.jpeg'):
-            os.remove('image.jpeg')
-        else:
-            print("Error :: the file \'image.jpeg\' does not exist")
-
-    elif (media_type == "video"):
-        # In case of video, will download the thumbnail and then send
-        # it with a caption ([VIDEO]title + video's link + today's link)
-        
-        # Use the script to get the youtube video ID.
-        yt_video_id = get_yt_video_id(url)
-        yt_thumbnail_link = "https://img.youtube.com/vi/"+yt_video_id+"/hqdefault.jpg"
-        
-        with open("image.jpg",'wb') as imagefile:
-            imagefile.write(urlopen(yt_thumbnail_link).read())
-        # Thumbnail downloaded.
+def main():
+    application = ApplicationBuilder().token(token=Constants.TOKEN).build()
     
-        # Open and send the thumbnail with its caption.
-        with open('image.jpg', 'rb') as image:
-            bot.send_photo(
-                chat_id,
-                image,
-                caption = "[VIDEO] <b>"+title+"</b>\n <a href='"+url+"'>Watch full video.</a>\n <a href='"+today_link+"'>Check the explanation.</a>",
-                parse_mode='html')
-        # Thumbnail sent.
+    text_handler = MessageHandler(filters.ALL, disclaimer)
+    application.add_handler(text_handler)
 
-# Every day at 9:00 astropixbot is called.
-schedule.every().day.at("10:00").do(astropixbot)
+    time = datetime.time(8, 00, 00, 000000)
+    application.job_queue.run_daily(callback=send_apod, time=time, chat_id=Constants.CHANNEL_CHAT_ID, name=str(Constants.CHANNEL_CHAT_ID))
+    
+    application.run_polling()
 
-# Loop so that the scheduling task keeps on running all time.
-while True:
-    # Check whether a scheduled task is pending to run or not
-    schedule.run_pending()
-    time.sleep(1) # it will refersh every second
+if __name__ == '__main__':
+    main()
