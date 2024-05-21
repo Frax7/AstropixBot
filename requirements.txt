@@ -12,7 +12,7 @@ jsonschema-specifications==2023.11.2
 python-telegram-bot==20.7
 pytz==2023.3.post1
 referencing==0.31.1
-requests==2.31.0
+requests==2.32.0
 rpds-py==0.13.2
 schedule==1.0.0
 six==1.16.0
